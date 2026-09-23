@@ -1,33 +1,23 @@
-name: Windows Virtual PC
+name: Windows RDP Virtual PC
 
 on: [workflow_dispatch]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Install QEMU & Tailscale
+      - name: Install Tailscale
         run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-system-x86 qemu-utils
-          curl -fsSL https://tailscale.com/install.sh | sh
+          choco install tailscale -y
+          & "C:\Program Files\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTHKEY }}
 
-      - name: Connect Tailscale
+      - name: Enable Remote Desktop
         run: |
-          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTHKEY }} --accept-dns=false
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          net user runneradmin MyPassword123! /add
+          net localgroup administrators runneradmin /add
 
-      - name: Create VM Disk & Start
+      - name: Keep Alive
         run: |
-          qemu-img create -f qcow2 win10.img 20G
-          qemu-system-x86_64 \
-            -m 8192 \
-            -smp 4 \
-            -cpu host \
-            -enable-kvm \
-            -net nic,model=virtio \
-            -net user,hostfwd=tcp::3389-:3389 \
-            -vnc :0 &
-          sleep 21600
+          Start-Sleep -Seconds 21600
