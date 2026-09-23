@@ -1,0 +1,33 @@
+name: Windows Virtual PC
+
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install QEMU & Tailscale
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-utils
+          curl -fsSL https://tailscale.com/install.sh | sh
+
+      - name: Connect Tailscale
+        run: |
+          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTHKEY }} --accept-dns=false
+
+      - name: Create VM Disk & Start
+        run: |
+          qemu-img create -f qcow2 win10.img 20G
+          qemu-system-x86_64 \
+            -m 8192 \
+            -smp 4 \
+            -cpu host \
+            -enable-kvm \
+            -net nic,model=virtio \
+            -net user,hostfwd=tcp::3389-:3389 \
+            -vnc :0 &
+          sleep 21600
