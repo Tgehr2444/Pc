@@ -16,8 +16,7 @@ jobs:
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-          net user runneradmin MyPassword123! /add
-          net localgroup administrators runneradmin /add
+          net user runneradmin MyPassword123!
 
       - name: Keep Alive
         run: |
